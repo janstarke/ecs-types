@@ -50,6 +50,11 @@ fn store_scope(filetitle: &str, entry: EcsMetaEntry) -> Result<String> {
     let mut rs_name = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     rs_name.push("src");
     rs_name.push("generated");
+
+    if ! rs_name.exists() {
+        fs::create_dir_all(&rs_name)?;
+    }
+
     rs_name.push(format!("{FILENAME_PREFIX}{filetitle}.rs"));
     let type_name = entry.name.clone();
 
