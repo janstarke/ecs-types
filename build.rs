@@ -12,6 +12,7 @@ use codegen::Scope;
 const FILENAME_PREFIX: &str ="ecs_";
 
 fn main() -> Result<()> {
+    let out_dir = env::var("OUT_DIR").unwrap();
     let mut ecs_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     ecs_path.push("ecs");
     ecs_path.push("schemas");
@@ -30,9 +31,7 @@ fn main() -> Result<()> {
     }
 
 
-    let mut rs_name = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    rs_name.push("src");
-    rs_name.push("generated");
+    let mut rs_name = PathBuf::from(out_dir);
     rs_name.push("mod.rs");
 
     fs::write(rs_name, mod_scope.to_string())?;
@@ -47,13 +46,8 @@ fn handle_schema_file(filetitle: &str, entry: DirEntry) -> Result<String> {
 }
 
 fn store_scope(filetitle: &str, entry: EcsMetaEntry) -> Result<String> {
-    let mut rs_name = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    rs_name.push("src");
-    rs_name.push("generated");
-
-    if ! rs_name.exists() {
-        fs::create_dir_all(&rs_name)?;
-    }
+    let out_dir = env::var("OUT_DIR").unwrap();
+    let mut rs_name = PathBuf::from(out_dir);
 
     rs_name.push(format!("{FILENAME_PREFIX}{filetitle}.rs"));
     let type_name = entry.name.clone();

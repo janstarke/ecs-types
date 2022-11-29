@@ -1,4 +1,3 @@
 pub mod types;
 
-mod generated;
-pub use generated::*;
+include!(concat!(env!("OUT_DIR"), "/mod.rs"));
