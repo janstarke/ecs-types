@@ -21,7 +21,7 @@ fn main() -> Result<()> {
     for entry in entries.flatten() {
         let filename = entry.file_name().into_string().unwrap();
         if filename.ends_with("yml") {
-            println!("reading {filename}");
+            println!("reading {}", entry.path().to_str().unwrap());
             let ext_index = filename.find(".yml").unwrap();
             let module = handle_schema_file(&filename[0..ext_index], entry)?;
             mod_scope.raw(format!("mod {FILENAME_PREFIX}{module};"));
