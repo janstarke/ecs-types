@@ -55,6 +55,7 @@ fn store_scope(filetitle: &str, entry: EcsMetaEntry) -> Result<String> {
 
     let rs_scope = Scope::from(entry);
 
+    println!("write to {}", rs_name.to_str().unwrap());
     fs::write(rs_name, rs_scope.to_string())?;
 
     Ok(type_name)
