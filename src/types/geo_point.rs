@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-#[derive(Serialize, Default)]
+#[derive(Serialize, Default, Clone)]
 pub struct GeoPoint {
     lat: f32,
     lon: f32

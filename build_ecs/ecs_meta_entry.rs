@@ -1,11 +1,11 @@
 use std::collections::HashSet;
 
 use build_helper::warning;
-use codegen::Scope;
+use codegen::{Scope, Impl, Function};
 use convert_case::{Casing, Case};
 use serde::{Deserialize, Serialize};
 
-use super::{EcsEntryField, EntryType};
+use super::{EcsEntryField, EntryType, format_docs};
 
 const TYPENAME_PREFIX: &str ="";
 
@@ -37,51 +37,50 @@ impl From<EcsMetaEntry> for Scope {
 
         let my_struct = scope.new_struct(&typename.to_case(Case::UpperCamel))
             .derive("Serialize")
-            .doc(&entry.description)
+            .derive("Clone")
+            .doc(&format_docs(&entry.description))
             .vis("pub");
+        
+        let mut my_impl = Impl::new(&typename.to_case(Case::UpperCamel));
         
         let mut fields = HashSet::new();
         
-        for field in entry.fields.into_iter() {
+        for field in entry.fields.iter() {
             let fieldname = field.name.clone();
             if fields.contains(&fieldname) {
                 warning!("field {fieldname} in {typename} defined more than once, ignoring the second occurance");
             } else {
+                my_impl.push_fn(field.getter());
+                my_impl.push_fn(field.setter());
                 my_struct.push_field(field.into());
                 fields.insert(fieldname);
             }
         }
+
+
+        let required_fields: Vec<_> = entry.fields.iter().filter(|f|f.required).collect();
+        if required_fields.is_empty() {
+            my_struct.derive("Default");
+        } else {
+            let mut method = Function::new("new");
+            method.vis("pub")
+                .ret("Self");
+            for field in required_fields {
+                method.arg(&field.arg_name(), field.fieldtype(false));
+            }
+            method.line("Self {");
+            for field in entry.fields.iter() {
+                if field.required {
+                    method.line(format!("{}: {},", field.fieldname(), field.arg_name()));
+                } else {
+                    method.line(format!("{}: Default::default(),", field.fieldname()));
+                }
+            }
+            method.line("}");
+            my_impl.push_fn(method);
+        }
+
+        scope.push_impl(my_impl);
         scope
     }
 }
-/*
-impl From<EcsMetaEntry> for Schema {
-    fn from(entry: EcsMetaEntry) -> Self {
-        let mut metadata = BTreeMap::new();
-        let mut properties = BTreeMap::new();
-
-        metadata.insert("rustType".into(), json!(entry.name));
-        metadata.insert("description".into(), json!(entry.description));
-
-        for field in entry.fields.into_iter() {
-            let name = if field.name == "type" {
-                "ecs_type".into()
-            } else {
-                field.name.clone()
-            };
-
-            properties.insert(name, field.into());
-        }
-
-        Schema::Properties {
-            definitions: BTreeMap::default(),
-            metadata,
-            nullable: false,
-            properties,
-            optional_properties: BTreeMap::default(),
-            properties_is_present: true,
-            additional_properties: false,
-        }
-    }
-}
- */
