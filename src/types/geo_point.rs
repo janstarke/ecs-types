@@ -1,7 +1,16 @@
 use serde::Serialize;
 
-#[derive(Serialize)]
+#[derive(Serialize, Default)]
 pub struct GeoPoint {
     lat: f32,
-    long: f32
+    lon: f32
+}
+
+impl GeoPoint {
+    pub fn new(lat: f32, lon: f32) -> Self {
+        Self {
+            lat,
+            lon
+        }
+    }
 }
