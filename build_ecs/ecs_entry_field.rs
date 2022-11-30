@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use super::{EntryLevel, EntryNormalize, EntryType, format_docs};
 const FIELD_PREFIX: &str = "ecs_";
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct EcsEntryField {
     pub name: String,
     pub level: EntryLevel,
@@ -83,7 +83,8 @@ impl EcsEntryField {
             .vis("pub")
             .arg_ref_self()
             .ret(self.fieldtype(true))
-            .line(function_line);
+            .line(function_line)
+            .doc(format_docs(&self.description));
         function
     }
 
@@ -106,11 +107,17 @@ impl EcsEntryField {
             }
         };
 
+        let example = match self.example.as_ref() {
+            Some(example) => format!("\n\n# Example\n\n```{example}```"),
+            None => "".into()
+        };
+
         function
             .vis("pub")
             .arg_mut_self()
             .arg(&arg_name, self.entry_type.to_string())
-            .line(function_line);
+            .line(function_line)
+            .doc(format!("{}{example}", format_docs(&self.description)));
         function
     }
 }
@@ -121,9 +128,16 @@ impl From<&EcsEntryField> for Field {
 
         let mut field = Field::new(&fieldname, entry.fieldtype(false));
 
+        let mut serde_options = vec![
+            format!("rename=\"{}\"", entry.name)
+        ];
+        if ! matches!(entry.normalize.first(), Some(EntryNormalize::Array)) && ! entry.required {
+            serde_options.push("skip_serializing_if = \"Option::is_none\"".into());
+        }
+
         field
             .doc(format_docs(&entry.description))
-            .annotation(format!("#[serde(rename=\"{}\")]", entry.name))
+            .annotation(format!("#[serde({})]", serde_options.join(",")))
             //.vis("pub")
             ;
         field

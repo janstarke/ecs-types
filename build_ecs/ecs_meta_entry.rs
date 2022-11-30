@@ -9,7 +9,7 @@ use super::{EcsEntryField, EntryType, format_docs};
 
 const TYPENAME_PREFIX: &str ="";
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct EcsMetaEntry {
     pub name: String,
     pub title: String,
@@ -20,16 +20,32 @@ pub struct EcsMetaEntry {
     pub description: String,
     pub footnote: Option<String>,
 
+    #[serde(default="Default::default")]
+    root: bool,
+
     #[serde(rename = "type")]
     pub entry_type: Option<EntryType>,
 
     pub fields: Vec<EcsEntryField>,
+
+    #[serde(skip)]
+    children: Vec<Self>
 }
 
 fn last_group() -> u32 { u32::MAX }
 
-impl From<EcsMetaEntry> for Scope {
-    fn from(entry: EcsMetaEntry) -> Self {
+impl EcsMetaEntry {
+    pub fn is_root(&self) -> bool {
+        self.root
+    }
+
+    pub fn add_child(&mut self, child: &Self) {
+        self.children.push(child.clone());
+    }
+}
+
+impl From<&EcsMetaEntry> for Scope {
+    fn from(entry: &EcsMetaEntry) -> Self {
         let mut scope = Scope::new();
         scope.import("serde", "Serialize");
 
@@ -57,6 +73,21 @@ impl From<EcsMetaEntry> for Scope {
             }
         }
 
+        for child in entry.children.iter() {
+            let child_type = format!("crate::{}", child.name.to_case(Case::UpperCamel));
+             let field = my_struct.new_field(format!("child_{}", child.name), format!("Option<{}>", child_type));
+             field.annotation(format!("#[serde(rename=\"{}\", skip_serializing_if = \"Option::is_none\")]", child.name));
+
+             let method = my_impl.new_fn(&format!("with_{}", child.name));
+             method.vis("pub")
+                .arg_mut_self()
+                .arg(&format!("{}_arg", child.name), &child_type)
+                .ret("&mut Self")
+                .line(format!("self.child_{} = Some({}_arg);", child.name, child.name))
+                .line("self")
+                .doc(format!("add child of type [{}]", child_type));
+        }
+
 
         let required_fields: Vec<_> = entry.fields.iter().filter(|f|f.required).collect();
         if required_fields.is_empty() {
@@ -75,6 +106,9 @@ impl From<EcsMetaEntry> for Scope {
                 } else {
                     method.line(format!("{}: Default::default(),", field.fieldname()));
                 }
+            }
+            for child in entry.children.iter() {
+                method.line(format!("child_{}: Default::default(),", child.name));
             }
             method.line("}");
             my_impl.push_fn(method);
