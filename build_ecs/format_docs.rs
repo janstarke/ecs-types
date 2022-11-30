@@ -16,6 +16,5 @@ pub fn format_docs(doc: &str) -> String {
     let res = RE_NEWLINE.replace_all(&res, "\n\n").to_string();
     //let res = RE_QUOTE.replace_all(&res, "\"").to_string();
     //assert_eq!(doc,res);
-    let res = res.replace('\n', "\n\n");
-    res
+    res.replace('\n', "\n\n")
 }
