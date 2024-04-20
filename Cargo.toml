@@ -3,8 +3,8 @@ name = "ecs_types"
 version = "0.2.0"
 edition = "2021"
 description = "Rust types mapping to the elasticsearch common schema"
-homepage = "https://www.github.com/janstarke/ecs_types"
-repository = "https://www.github.com/janstarke/ecs_types"
+homepage = "https://github.com/janstarke/ecs_types"
+repository = "https://github.com/janstarke/ecs_types"
 license = "Apache-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
